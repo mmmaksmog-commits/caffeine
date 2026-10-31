@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Кофеин — трекер</title>
+  <meta name="description" content="Сколько кофеина сейчас в крови и когда получится уснуть. График на сутки вперёд и дневная норма.">
+  <meta name="theme-color" content="#1c120c">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #1c120c; --card: #2a1c14; --card2: #34241a; --line: #4a3427; --text: #f6ece2; --muted: #c2a995; --coffee: #c8864a; --cream: #f3d7b6; --red: #f87171; --green: #86efac; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(circle at 80% -10%, #4a2b17, var(--bg) 55%); background-color: var(--bg); color: var(--text); font: 16px/1.5 Manrope, system-ui, sans-serif; }
+    button, input, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 620px; margin: 0 auto; padding: calc(22px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+    .now { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; padding: 22px; border-radius: 28px; background: var(--card); }
+    .cup { position: relative; width: 108px; height: 120px; border: 5px solid var(--cream); border-top: 0; border-radius: 0 0 40px 40px; overflow: hidden; }
+    .cup::after { content: ''; position: absolute; right: -26px; top: 18px; width: 22px; height: 40px; border: 5px solid var(--cream); border-left: 0; border-radius: 0 20px 20px 0; }
+    .cup { overflow: visible; }
+    .cup__fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0 0 34px 34px; background: linear-gradient(180deg, #a86a37, #6b3f1f); transition: height 0.6s ease; }
+    .cup__fill::before { content: ''; position: absolute; left: 0; right: 0; top: -4px; height: 8px; border-radius: 50%; background: #c8864a; }
+    .steam { position: absolute; left: 50%; top: -34px; font-size: 22px; opacity: 0.6; transform: translateX(-50%); animation: steam 2.6s ease-in-out infinite; }
+    @keyframes steam { 50% { transform: translate(-50%, -6px); opacity: 0.25; } }
+    .now small { color: var(--muted); font-weight: 600; }
+    .now b { display: block; font: 700 clamp(40px, 11vw, 58px)/1 Fraunces, Georgia, serif; }
+    .now b span { font: 600 18px Manrope, sans-serif; color: var(--muted); }
+    .sleep { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--card2); font-weight: 600; }
+    .sleep.ok { color: var(--green); }
+    .sleep.no { color: var(--cream); }
+    h2 { margin: 26px 0 12px; font-size: 17px; }
+    .drinks { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+    .drink { display: grid; justify-items: center; gap: 2px; padding: 12px 6px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); transition: transform 0.12s, border-color 0.2s; }
+    .drink:hover { border-color: var(--coffee); }
+    .drink:active { transform: scale(0.95); }
+    .drink span { font-size: 28px; }
+    .drink b { font-size: 13px; }
+    .drink small { color: var(--muted); font-size: 12px; }
+    .when { display: flex; gap: 8px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 14px; }
+    .when input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+    .card { padding: 18px; border-radius: 24px; background: var(--card); }
+    .chart svg { width: 100%; height: auto; display: block; }
+    .chart text { fill: var(--muted); font-size: 11px; font-family: Manrope, sans-serif; }
+    .daily { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 600; }
+    .meter { height: 12px; border-radius: 6px; background: var(--card2); overflow: hidden; }
+    .meter i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--coffee), var(--cream)); transition: width 0.4s; }
+    .meter i.over { background: var(--red); }
+    .note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .log { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .log li { display: grid; grid-template-columns: 34px 1fr auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--card); }
+    .log li span { font-size: 22px; }
+    .log small { color: var(--muted); }
+    .log .mg { font-weight: 700; color: var(--cream); }
+    .del { width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); }
+    .settings { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; color: var(--muted); font-size: 14px; }
+    .settings select { max-width: 100%; }
+    .settings select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+    .empty { padding: 14px; color: var(--muted); text-align: center; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="now">
+      <div class="cup" aria-hidden="true"><span class="steam">♨</span><div class="cup__fill" id="fill"></div></div>
+      <div>
+        <small>Кофеин в крови сейчас</small>
+        <b id="level">0 <span>мг</span></b>
+        <div class="sleep" id="sleep"></div>
+      </div>
+    </section>
+
+    <h2>Что выпили?</h2>
+    <div class="drinks" id="drinks"></div>
+    <div class="when"><label>Время <input type="time" id="time"></label><span>— по умолчанию сейчас</span></div>
+
+    <h2>Прогноз на сутки</h2>
+    <div class="card chart" id="chart"></div>
+
+    <h2>Сегодня</h2>
+    <div class="card">
+      <div class="daily"><span>Всего за день</span><span id="dailyText"></span></div>
+      <div class="meter"><i id="dailyBar"></i></div>
+      <p class="note">Безопасная норма для взрослого — до 400 мг в день. Сон обычно не страдает, когда в крови меньше 50 мг.</p>
+    </div>
+    <h2>Журнал</h2>
+    <ul class="log" id="log"></ul>
+    <div class="settings">Период полувыведения
+      <select id="half"><option value="4">4 часа (быстрый метаболизм)</option><option value="5" selected>5 часов (в среднем)</option><option value="6">6 часов (медленный)</option></select>
+    </div>
+  </main>
+
+  <script>
+    const DRINKS = [['☕', 'Эспрессо', 63], ['🥤', 'Американо', 95], ['☕', 'Капучино', 75], ['🥛', 'Латте', 75], ['🫖', 'Чёрный чай', 47], ['🍵', 'Зелёный чай', 28], ['⚡', 'Энергетик 0,5', 160], ['🥫', 'Кола 0,5', 48], ['🍫', 'Шоколад 100 г', 40]];
+    const SLEEP_MG = 50, DAILY_MG = 400, ABSORB_H = 0.75;
+    const $ = (id) => document.getElementById(id);
+    const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem('caf_' + k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('caf_' + k, JSON.stringify(v)); } catch {} } };
+    let log = store.get('log', []).filter((x) => Date.now() - x.t < 3 * 864e5);
+    let half = store.get('half', 5);
+    $('half').value = half;
+
+    // Модель: кофеин всасывается ~45 минут, затем выводится экспоненциально с периодом полувыведения
+    function levelAt(ts) {
+      return log.reduce((sum, x) => {
+        const h = (ts - x.t) / 36e5;
+        if (h < 0) return sum;
+        const absorbed = Math.min(1, h / ABSORB_H);
+        return sum + x.mg * absorbed * 0.5 ** (Math.max(0, h - ABSORB_H / 2) / half);
+      }, 0);
+    }
+    const hhmm = (ts) => new Date(ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+    function sleepTime() {
+      const now = Date.now();
+      for (let m = 0; m <= 36 * 60; m += 5) { const ts = now + m * 6e4; if (levelAt(ts) < SLEEP_MG && levelAt(ts + 30 * 6e4) <= levelAt(ts) + 1) return ts; }
+      return null;
+    }
+
+    function render() {
+      const now = Date.now();
+      const lvl = levelAt(now);
+      $('level').innerHTML = `${Math.round(lvl)} <span>мг</span>`;
+      $('fill').style.height = `${Math.min(100, (lvl / 300) * 100)}%`;
+      const st = sleepTime();
+      const s = $('sleep');
+      if (lvl < SLEEP_MG) { s.className = 'sleep ok'; s.textContent = '😴 Кофеин не помешает уснуть'; }
+      else { s.className = 'sleep no'; s.textContent = st ? `🌙 Спокойно уснуть получится после ${hhmm(st)}` : '🌙 Ещё очень долго…'; }
+
+      // График: 24 часа от «сейчас минус 4 часа»
+      const W = 600, H = 220, P = { l: 36, r: 10, t: 14, b: 26 };
+      const t0 = now - 4 * 36e5, t1 = now + 20 * 36e5;
+      const pts = []; let max = 120;
+      for (let ts = t0; ts <= t1; ts += 15 * 6e4) { const v = levelAt(ts); pts.push([ts, v]); max = Math.max(max, v * 1.15); }
+      const x = (ts) => P.l + ((ts - t0) / (t1 - t0)) * (W - P.l - P.r);
+      const y = (v) => P.t + (1 - v / max) * (H - P.t - P.b);
+      const line = pts.map(([ts, v], i) => `${i ? 'L' : 'M'}${x(ts).toFixed(1)},${y(v).toFixed(1)}`).join('');
+      const ticks = [];
+      for (let h = Math.ceil(t0 / 36e5) * 36e5; h <= t1; h += 36e5) if (new Date(h).getHours() % 4 === 0) ticks.push(h);
+      $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Кофеин в крови на сутки">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8864a" stop-opacity=".55"/><stop offset="1" stop-color="#c8864a" stop-opacity="0"/></linearGradient></defs>
+        <rect x="${P.l}" y="${y(SLEEP_MG)}" width="${W - P.l - P.r}" height="${H - P.b - y(SLEEP_MG)}" fill="#86efac" opacity=".07"/>
+        <line x1="${P.l}" x2="${W - P.r}" y1="${y(SLEEP_MG)}" y2="${y(SLEEP_MG)}" stroke="#86efac" stroke-dasharray="4 5" opacity=".6"/>
+        <text x="${W - P.r}" y="${y(SLEEP_MG) - 5}" text-anchor="end" fill="#86efac">можно спать · 50 мг</text>
+        ${[0, 0.5, 1].map((k) => `<text x="${P.l - 6}" y="${y(max * k) + 4}" text-anchor="end">${Math.round(max * k)}</text>`).join('')}
+        <path d="${line}L${x(t1)},${H - P.b}L${x(t0)},${H - P.b}Z" fill="url(#g)"/>
+        <path d="${line}" fill="none" stroke="#f3d7b6" stroke-width="2.5" stroke-linejoin="round"/>
+        <line x1="${x(now)}" x2="${x(now)}" y1="${P.t}" y2="${H - P.b}" stroke="#f87171" stroke-width="1.5"/>
+        <circle cx="${x(now)}" cy="${y(lvl)}" r="5" fill="#f87171"/>
+        <text x="${x(now) + 6}" y="${P.t + 10}" fill="#f87171">сейчас</text>
+        ${ticks.map((h) => `<text x="${x(h)}" y="${H - 8}" text-anchor="middle">${new Date(h).getHours()}:00</text>`).join('')}
+        ${log.filter((e) => e.t >= t0 && e.t <= t1).map((e) => `<text x="${x(e.t)}" y="${y(levelAt(e.t + ABSORB_H * 36e5)) - 8}" text-anchor="middle" style="font-size:14px">${e.emoji}</text>`).join('')}
+      </svg>`;
+
+      const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+      const today = log.filter((e) => e.t >= +midnight);
+      const total = today.reduce((s, e) => s + e.mg, 0);
+      $('dailyText').textContent = `${total} / ${DAILY_MG} мг`;
+      $('dailyBar').style.width = `${Math.min(100, (total / DAILY_MG) * 100)}%`;
+      $('dailyBar').classList.toggle('over', total > DAILY_MG);
+      $('log').innerHTML = log.length ? [...log].sort((a, b) => b.t - a.t).map((e) => `<li><span>${e.emoji}</span><div><b>${e.name}</b><small> · ${new Date(e.t).toLocaleDateString('ru-RU', { weekday: 'short' })}, ${hhmm(e.t)}</small></div><span class="mg">${e.mg} мг</span><button class="del" data-del="${e.id}" aria-label="Удалить">✕</button></li>`).join('')
+        : '<li class="empty" style="grid-template-columns:1fr">Журнал пуст — отметьте первую чашку</li>';
+    }
+
+    $('drinks').innerHTML = DRINKS.map(([e, n, mg], i) => `<button class="drink" data-d="${i}"><span>${e}</span><b>${n}</b><small>${mg} мг</small></button>`).join('');
+    $('drinks').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-d]'); if (!b) return;
+      const [emoji, name, mg] = DRINKS[+b.dataset.d];
+      let t = Date.now();
+      if ($('time').value) { const [h, m] = $('time').value.split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); if (d > new Date()) d.setDate(d.getDate() - 1); t = +d; }
+      log.push({ id: Date.now() + Math.random(), emoji, name, mg, t });
+      store.set('log', log);
+      $('time').value = '';
+      render();
+    });
+    $('log').addEventListener('click', (e) => { const b = e.target.closest('[data-del]'); if (b) { log = log.filter((x) => String(x.id) !== b.dataset.del); store.set('log', log); render(); } });
+    $('half').onchange = () => { half = +$('half').value; store.set('half', half); render(); };
+    render();
+    setInterval(render, 60000);
+  </script>
+</body>
+</html>
